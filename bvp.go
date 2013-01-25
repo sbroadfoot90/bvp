@@ -1,18 +1,18 @@
 package bvp
 
 import (
- 	"github.com/skelterjohn/go.matrix"
+	"github.com/skelterjohn/go.matrix"
 )
 
 type BVP struct {
-	ODE ODE
-	X matrix.Matrix
-	T []float64
+	ODE    ODE
+	X      matrix.Matrix
+	T      []float64
 	B0, B1 matrix.Matrix
 }
 
-func (bvp *BVP) solve (bta, b matrix.Matrix) {
-	
+func (bvp *BVP) solve(bta, b matrix.Matrix) {
+
 }
 
 // 
