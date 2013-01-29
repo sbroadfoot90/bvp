@@ -19,5 +19,18 @@ type ODE struct {
 
 // Evaluates the function f with checking of matrix dimensions
 func (o *ODE) F(x matrix.Matrix, t float64, beta matrix.Matrix) (matrix.Matrix, error) {
+
 	return o.f(x, t, beta), nil
+}
+
+type DimensionError struct {
+	What string
+}
+
+func (de DimensionError) String() string {
+	return de.What
+}
+
+func NewDimensionError(what string) DimensionError {
+	return DimensionError{what}
 }
