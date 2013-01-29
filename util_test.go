@@ -66,9 +66,9 @@ func MattheijQ(t float64, beta matrix.Matrix) matrix.Matrix {
 	return q
 }
 
-func TestLinearFDfdxDfdbeta(t *testing.T) {
+var MattheijF, MattheijDfdx = LinearFDfdx(MattheijA, MattheijQ)
 
-	MattheijF, MattheijDfdx := LinearFDfdx(MattheijA, MattheijQ)
+func TestLinearFDfdxDfdbeta(t *testing.T) {
 
 	x := matrix.Zeros(3, 1)
 	x.Set(0, 0, 1)
