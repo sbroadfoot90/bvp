@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-func writeMatrix(mat matrix.MatrixRO, filename string) (err error) {
+func WriteMatrix(mat matrix.MatrixRO, filename string) (err error) {
 	file, err := os.Create(filename)
 	defer file.Close()
 
@@ -29,6 +29,23 @@ func writeMatrix(mat matrix.MatrixRO, filename string) (err error) {
 	err = csvWriter.WriteAll(strMatrix)
 
 	csvWriter.Flush()
+
+	return
+}
+
+func LinearFDfdx(
+	a, q func(float64, matrix.Matrix) matrix.Matrix,
+) (
+	f, dfdx func(matrix.Matrix, float64, matrix.Matrix) matrix.Matrix,
+) {
+
+	f = func(x matrix.Matrix, t float64, beta matrix.Matrix) matrix.Matrix {
+		return matrix.Sum(matrix.Product(a(t, beta), x), q(t, beta))
+	}
+
+	dfdx = func(x matrix.Matrix, t float64, beta matrix.Matrix) matrix.Matrix {
+		return a(t, beta)
+	}
 
 	return
 }
