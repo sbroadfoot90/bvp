@@ -1,0 +1,4 @@
+Package bvp implements a simple library to solve boundary value problems.
+The package makes use of the github.com/skelterjohn/go.matrix library.
+
+Uses Go for implementation. http://www.golang.org/
