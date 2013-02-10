@@ -36,3 +36,17 @@ func (o *ODE) F(x matrix.Matrix, t float64, beta matrix.Matrix) (matrix.Matrix, 
 
 	return o.f(x, t, beta), nil
 }
+
+// Evaluates the function dfdx with checking of matrix dimensions
+func (o *ODE) Dfdx(x matrix.Matrix, t float64, beta matrix.Matrix) (matrix.Matrix, error) {
+	//checking dimensions of input
+	if x.Rows() != o.P || x.Cols() != 1 {
+		return nil, NewDimensionError("x", o.P, 1, x.Rows(), x.Cols())
+	}
+
+	if o.Q != 0 && (beta.Rows() != o.Q || beta.Cols() != 1) {
+		return nil, NewDimensionError("beta", o.Q, 1, beta.Rows(), beta.Cols())
+	}
+
+	return o.dfdx(x, t, beta), nil
+}
