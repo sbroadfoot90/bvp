@@ -2,6 +2,7 @@ package bvp
 
 import (
 	"github.com/skelterjohn/go.matrix"
+	"math"
 	"testing"
 )
 
@@ -202,5 +203,52 @@ func TestChecksBDims(t *testing.T) {
 
 	if err == nil {
 		t.Errorf("Incorrect b check. Incorrect b cols used.")
+	}
+}
+
+func TestConstraintVector(t *testing.T) {
+	n := 10001
+
+	timeMesh := make([]float64, n, n)
+	initialGuess := make([]matrix.Matrix, n, n)
+
+	for i := 0; i < n; i++ {
+		timeMesh[i] = float64(i) / (float64(n) - 1)
+		initialGuess[i] = matrix.Scaled(matrix.Ones(3, 1), math.Exp(timeMesh[i]))
+	}
+
+	B0 := matrix.MakeDenseMatrix([]float64{1, 0, 0, 0, 0, 0, 0, 0, 0}, 3, 3)
+	B1 := matrix.MakeDenseMatrix([]float64{0, 0, 0, 0, 1, 0, 0.8415, 0, 0.5403}, 3, 3)
+	beta := matrix.MakeDenseMatrix([]float64{19, 2}, 2, 1)
+	b := matrix.Sum(matrix.Product(B0, initialGuess[0]), matrix.Product(B1, initialGuess[n-1]))
+
+	MattheijBVP, err := NewBVPWithInitialGuess(MattheijODE, initialGuess, timeMesh, B0, B1, beta, b)
+
+	if err != nil {
+		t.Errorf("Error creating Mattheij BVP")
+	}
+
+	sol, err := ConstraintVector(&MattheijBVP)
+
+	if err != nil {
+		t.Errorf("Error calculating constraint vector")
+	}
+
+	if !matrix.ApproxEquals(sol, matrix.Zeros(n*3, 1), 1e-2) {
+		t.Errorf("Constraint vector not close to zero for actual solution")
+	}
+
+	for i := 0; i < n; i++ {
+		MattheijBVP.X[i] = matrix.Numbers(3, 1, 340)
+	}
+
+	sol, err = ConstraintVector(&MattheijBVP)
+
+	if err != nil {
+		t.Errorf("Error calculating constraint vector")
+	}
+
+	if matrix.ApproxEquals(sol, matrix.Zeros(n*3, 1), 1e-2) {
+		t.Errorf("Constraint vector too close to zero for non-solution")
 	}
 }

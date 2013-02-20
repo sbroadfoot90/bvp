@@ -25,11 +25,8 @@ func WriteMatrix(mat matrix.MatrixRO, filename string) (err error) {
 			strMatrix[rowIndex][colIndex] = strconv.FormatFloat(mat.Get(rowIndex, colIndex), 'f', -1, 64)
 		}
 	}
-
 	err = csvWriter.WriteAll(strMatrix)
-
 	csvWriter.Flush()
-
 	return
 }
 

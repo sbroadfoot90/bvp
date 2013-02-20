@@ -11,6 +11,7 @@ type BVP struct {
 	T       []float64
 	B0, B1  matrix.Matrix
 	Beta, B matrix.Matrix
+	N       int
 }
 
 func NewBVPWithInitialGuess(ode ODE, initialGuess []matrix.Matrix, timeMesh []float64, B0, B1, beta, b matrix.Matrix) (BVP, error) {
@@ -43,7 +44,7 @@ func NewBVPWithInitialGuess(ode ODE, initialGuess []matrix.Matrix, timeMesh []fl
 		return bvp, NewDimensionError("b", ode.P, 1, b.Rows(), b.Cols())
 	}
 
-	bvp = BVP{ode, initialGuess, timeMesh, B0, B1, beta, b}
+	bvp = BVP{ode, initialGuess, timeMesh, B0, B1, beta, b, n}
 	return bvp, nil
 }
 
@@ -58,5 +59,42 @@ func NewBVPWithoutInitialGuess(ode ODE, timeMesh []float64, B0, B1, beta, b matr
 }
 
 func (bvp *BVP) Solve() {
+	// tolerance := 1e-4
+	// maxiter := 500
+	// converged := false
+}
 
+func ConstraintVector(bvp *BVP) (constraint *matrix.DenseMatrix, err error) {
+
+	constraint = matrix.Zeros(bvp.ODE.P*bvp.N, 1)
+
+	var constraint_i *matrix.DenseMatrix
+	fNow, err := bvp.ODE.F(bvp.X[0], bvp.T[0], bvp.Beta)
+
+	if err != nil {
+		return
+	}
+
+	for i := 1; i < bvp.N; i++ {
+
+		fBefore := matrix.MakeDenseCopy(fNow)
+
+		fNow, err = bvp.ODE.F(bvp.X[i], bvp.T[i], bvp.Beta)
+
+		if err != nil {
+			return
+		}
+
+		constraint_i = matrix.Difference(
+			matrix.Difference(bvp.X[i], bvp.X[i-1]),
+			matrix.Scaled(matrix.Sum(fBefore, fNow), (bvp.T[i]-bvp.T[i-1])/2),
+		)
+
+		constraint.SetMatrix((i-1)*bvp.ODE.P, 0, constraint_i)
+	}
+
+	constraint.SetMatrix((bvp.N-1)*bvp.ODE.P, 0,
+		matrix.Difference(matrix.Sum(matrix.Product(bvp.B0, bvp.X[0]), matrix.Product(bvp.B1, bvp.X[bvp.N-1])), bvp.B))
+
+	return
 }
