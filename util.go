@@ -31,16 +31,16 @@ func WriteMatrix(mat matrix.MatrixRO, filename string) (err error) {
 }
 
 func LinearFDfdx(
-	a, q func(float64, matrix.Matrix) matrix.Matrix,
+	a, q func(float64, matrix.MatrixRO) matrix.Matrix,
 ) (
-	f, dfdx func(matrix.Matrix, float64, matrix.Matrix) matrix.Matrix,
+	f, dfdx func(matrix.MatrixRO, float64, matrix.MatrixRO) matrix.Matrix,
 ) {
 
-	f = func(x matrix.Matrix, t float64, beta matrix.Matrix) matrix.Matrix {
+	f = func(x matrix.MatrixRO, t float64, beta matrix.MatrixRO) matrix.Matrix {
 		return matrix.Sum(matrix.Product(a(t, beta), x), q(t, beta))
 	}
 
-	dfdx = func(x matrix.Matrix, t float64, beta matrix.Matrix) matrix.Matrix {
+	dfdx = func(x matrix.MatrixRO, t float64, beta matrix.MatrixRO) matrix.Matrix {
 		return a(t, beta)
 	}
 

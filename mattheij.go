@@ -5,7 +5,7 @@ import (
 	"math"
 )
 
-func MattheijA(t float64, beta matrix.Matrix) matrix.Matrix {
+func MattheijA(t float64, beta matrix.MatrixRO) matrix.Matrix {
 	a := matrix.Zeros(3, 3)
 
 	a.Set(0, 0, 1-beta.Get(0, 0)*math.Cos(beta.Get(1, 0)*t))
@@ -16,7 +16,7 @@ func MattheijA(t float64, beta matrix.Matrix) matrix.Matrix {
 	return a
 }
 
-func MattheijQ(t float64, beta matrix.Matrix) matrix.Matrix {
+func MattheijQ(t float64, beta matrix.MatrixRO) matrix.Matrix {
 	q := matrix.Zeros(3, 1)
 	q.Set(0, 0, math.Exp(t)*(-1+19*(math.Cos(2*t)-math.Sin(2*t))))
 	q.Set(2, 0, math.Exp(t)*(1-19*(math.Cos(2*t)+math.Sin(2*t))))
@@ -27,12 +27,12 @@ func MattheijQ(t float64, beta matrix.Matrix) matrix.Matrix {
 var MattheijF, MattheijDfdx = LinearFDfdx(MattheijA, MattheijQ)
 
 var (
-	MattheijDfdbeta = []func(matrix.Matrix, float64, matrix.Matrix) matrix.Matrix{MattheijDfdbeta1, MattheijDfdbeta2}
+	MattheijDfdbeta = []func(matrix.MatrixRO, float64, matrix.MatrixRO) matrix.Matrix{MattheijDfdbeta1, MattheijDfdbeta2}
 
 	MattheijODE = NewODE(MattheijF, MattheijDfdx, MattheijDfdbeta, 3)
 )
 
-func MattheijDfdbeta1(x matrix.Matrix, t float64, beta matrix.Matrix) matrix.Matrix {
+func MattheijDfdbeta1(x matrix.MatrixRO, t float64, beta matrix.MatrixRO) matrix.Matrix {
 	dadbeta1 := matrix.Zeros(3, 3)
 
 	dadbeta1.Set(0, 0, -math.Cos(beta.Get(1, 0)*t))
@@ -44,7 +44,7 @@ func MattheijDfdbeta1(x matrix.Matrix, t float64, beta matrix.Matrix) matrix.Mat
 	return matrix.Product(dadbeta1, x)
 }
 
-func MattheijDfdbeta2(x matrix.Matrix, t float64, beta matrix.Matrix) matrix.Matrix {
+func MattheijDfdbeta2(x matrix.MatrixRO, t float64, beta matrix.MatrixRO) matrix.Matrix {
 	dadbeta2 := matrix.Zeros(3, 3)
 
 	dadbeta2.Set(0, 0, t*beta.Get(0, 0)*math.Sin(beta.Get(1, 0)*t))
