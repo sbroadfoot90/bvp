@@ -105,7 +105,7 @@ func ConstraintMatrix(bvp *BVP) (constraint *matrix.SparseMatrix, err error) {
 
 	var constraint_i1 *matrix.DenseMatrix
 	var constraint_i2 *matrix.DenseMatrix
-	
+
 	dfdxNow, err := bvp.ODE.Dfdx(bvp.X[0], bvp.T[0], bvp.Beta)
 
 	if err != nil {
@@ -130,21 +130,21 @@ func ConstraintMatrix(bvp *BVP) (constraint *matrix.SparseMatrix, err error) {
 			matrix.Eye(bvp.ODE.P),
 			matrix.Scaled(dfdxBefore, (bvp.T[i]-bvp.T[i-1])/2),
 		)
-		
+
 		for r := 0; r < bvp.ODE.P; r++ {
 			for c := 0; c < bvp.ODE.P; c++ {
-				constraint.Set(r + (i-1)*bvp.ODE.P, c + (i-1)*bvp.ODE.P, constraint_i1.Get(r, c))
-				constraint.Set(r + (i-1)*bvp.ODE.P, c + i*bvp.ODE.P,     constraint_i2.Get(r, c))
+				constraint.Set(r+(i-1)*bvp.ODE.P, c+(i-1)*bvp.ODE.P, constraint_i1.Get(r, c))
+				constraint.Set(r+(i-1)*bvp.ODE.P, c+i*bvp.ODE.P, constraint_i2.Get(r, c))
 			}
 		}
 	}
 
 	for r := 0; r < bvp.ODE.P; r++ {
 		for c := 0; c < bvp.ODE.P; c++ {
-			constraint.Set(r + (bvp.N-1)*bvp.ODE.P, c, bvp.B0.Get(r, c))
-			constraint.Set(r + (bvp.N-1)*bvp.ODE.P, c + (bvp.N-1)*bvp.ODE.P, bvp.B1.Get(r, c))
+			constraint.Set(r+(bvp.N-1)*bvp.ODE.P, c, bvp.B0.Get(r, c))
+			constraint.Set(r+(bvp.N-1)*bvp.ODE.P, c+(bvp.N-1)*bvp.ODE.P, bvp.B1.Get(r, c))
 		}
 	}
-	
+
 	return
 }

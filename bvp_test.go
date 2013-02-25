@@ -253,7 +253,6 @@ func TestConstraintVector(t *testing.T) {
 	}
 }
 
-
 func TestConstraintMatrix(t *testing.T) {
 	n := 10001
 
