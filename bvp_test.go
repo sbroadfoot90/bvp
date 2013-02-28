@@ -254,7 +254,7 @@ func TestConstraintVector(t *testing.T) {
 }
 
 func TestConstraintMatrix(t *testing.T) {
-	n := 10001
+	n := 11
 
 	timeMesh := make([]float64, n, n)
 	initialGuess := make([]matrix.Matrix, n, n)
@@ -278,6 +278,47 @@ func TestConstraintMatrix(t *testing.T) {
 	_, err = ConstraintMatrix(&MattheijBVP)
 
 	if err != nil {
-		t.Errorf("Error calculating constraint vector")
+		t.Errorf("Error calculating constraint matrix")
 	}
+
+	// err = WriteMatrix(cm, "cm.csv")
+	// 
+	// if err != nil {
+	// 	t.Errorf("Error writing constraint matrix")
+	// }
+}
+
+func TestConstraintMatrixPermuted(t *testing.T) {
+	n := 11
+
+	timeMesh := make([]float64, n, n)
+	initialGuess := make([]matrix.Matrix, n, n)
+
+	for i := 0; i < n; i++ {
+		timeMesh[i] = float64(i) / (float64(n) - 1)
+		initialGuess[i] = matrix.Scaled(matrix.Ones(3, 1), math.Exp(timeMesh[i]))
+	}
+
+	B0 := matrix.MakeDenseMatrix([]float64{1, 0, 0, 0, 0, 0, 0, 0, 0}, 3, 3)
+	B1 := matrix.MakeDenseMatrix([]float64{0, 0, 0, 0, 1, 0, 0.8415, 0, 0.5403}, 3, 3)
+	beta := matrix.MakeDenseMatrix([]float64{19, 2}, 2, 1)
+	b := matrix.Sum(matrix.Product(B0, initialGuess[0]), matrix.Product(B1, initialGuess[n-1]))
+
+	MattheijBVP, err := NewBVPWithInitialGuess(MattheijODE, initialGuess, timeMesh, B0, B1, beta, b)
+
+	if err != nil {
+		t.Errorf("Error creating Mattheij BVP")
+	}
+
+	_, err = ConstraintMatrixPermuted(&MattheijBVP)
+
+	if err != nil {
+		t.Errorf("Error calculating constraint matrix permuted")
+	}
+
+	// err = WriteMatrix(cmp, "cmp.csv")
+	// 
+	// if err != nil {
+	// 	t.Errorf("Error writing constraint matrix")
+	// }
 }
