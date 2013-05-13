@@ -1,7 +1,7 @@
 package bvp
 
 import (
-	"github.com/skelterjohn/go.matrix"
+	"github.com/sbroadfoot90/go.matrix"
 )
 
 // Boundary conditions on the ODE are B0 x(t_1) + B1 x(t_n) = b
@@ -98,6 +98,63 @@ func ConstraintVector(bvp *BVP) (constraint *matrix.DenseMatrix, err error) {
 
 	return
 }
+
+func ConstraintMatrixBlocks(bvp *BVP) (A, B []*matrix.DenseMatrix, err error) {
+	A = make([]*matrix.DenseMatrix, bvp.N - 1, bvp.N - 1)
+	B = make([]*matrix.DenseMatrix, bvp.N - 1, bvp.N - 1)
+	
+	dfdxNow, err := bvp.ODE.Dfdx(bvp.X[0], bvp.T[0], bvp.Beta)
+	
+	if err != nil {
+		return
+	}
+
+	for i := 1; i < bvp.N; i++ {
+
+		dfdxBefore := matrix.MakeDenseCopy(dfdxNow)
+
+		dfdxNow, err = bvp.ODE.Dfdx(bvp.X[i], bvp.T[i], bvp.Beta)
+
+		if err != nil {
+			return
+		}
+
+		A[i-1] = matrix.Difference(
+			matrix.Scaled(matrix.Eye(bvp.ODE.P), -1),
+			matrix.Scaled(dfdxBefore, (bvp.T[i]-bvp.T[i-1])/2),
+		)
+		
+		B[i-1] = matrix.Difference(
+			matrix.Eye(bvp.ODE.P),
+			matrix.Scaled(dfdxBefore, (bvp.T[i]-bvp.T[i-1])/2),
+		)
+
+		// for r := 0; r < bvp.ODE.P; r++ {
+		// 			for c := 0; c < bvp.ODE.P; c++ {
+		// 				constraint.Set(r+(i-1)*bvp.ODE.P, c+(i-1)*bvp.ODE.P, constraint_i1.Get(r, c))
+		// 				constraint.Set(r+(i-1)*bvp.ODE.P, c+i*bvp.ODE.P, constraint_i2.Get(r, c))
+		// 			}
+		// 		}
+	}
+
+	// for r := 0; r < bvp.ODE.P; r++ {
+	// 		for c := 0; c < bvp.ODE.P; c++ {
+	// 			constraint.Set(r+(bvp.N-1)*bvp.ODE.P, c, bvp.B0.Get(r, c))
+	// 			constraint.Set(r+(bvp.N-1)*bvp.ODE.P, c+(bvp.N-1)*bvp.ODE.P, bvp.B1.Get(r, c))
+	// 		}
+	// 	}
+
+	return
+}
+
+
+
+
+
+
+
+
+
 
 func ConstraintMatrix(bvp *BVP) (constraint *matrix.SparseMatrix, err error) {
 

@@ -16,3 +16,9 @@ func (de DimensionError) Error() string {
 func NewDimensionError(variableName string, er, ec, rr, rc int) DimensionError {
 	return DimensionError{variableName, er, ec, rr, rc}
 }
+
+type MatrixError string
+
+func (me MatrixError) Error() string {
+	return string(me)
+}

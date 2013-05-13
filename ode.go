@@ -5,7 +5,7 @@
 package bvp
 
 import (
-	"github.com/skelterjohn/go.matrix"
+	"github.com/sbroadfoot90/go.matrix"
 )
 
 type ODE struct {
