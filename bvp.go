@@ -128,31 +128,85 @@ func ConstraintMatrixBlocks(bvp *BVP) (A, B []*matrix.DenseMatrix, err error) {
 			matrix.Eye(bvp.ODE.P),
 			matrix.Scaled(dfdxBefore, (bvp.T[i]-bvp.T[i-1])/2),
 		)
+	}
+	return
+}
 
-		// for r := 0; r < bvp.ODE.P; r++ {
-		// 			for c := 0; c < bvp.ODE.P; c++ {
-		// 				constraint.Set(r+(i-1)*bvp.ODE.P, c+(i-1)*bvp.ODE.P, constraint_i1.Get(r, c))
-		// 				constraint.Set(r+(i-1)*bvp.ODE.P, c+i*bvp.ODE.P, constraint_i2.Get(r, c))
-		// 			}
-		// 		}
+func ConstraintVectorBlocks(bvp *BVP) (constraint []*matrix.DenseMatrix, err error) {
+
+	constraint = make([]*matrix.DenseMatrix, bvp.N, bvp.N)
+
+	fNow, err := bvp.ODE.F(bvp.X[0], bvp.T[0], bvp.Beta)
+
+	if err != nil {
+		return
 	}
 
-	// for r := 0; r < bvp.ODE.P; r++ {
-	// 		for c := 0; c < bvp.ODE.P; c++ {
-	// 			constraint.Set(r+(bvp.N-1)*bvp.ODE.P, c, bvp.B0.Get(r, c))
-	// 			constraint.Set(r+(bvp.N-1)*bvp.ODE.P, c+(bvp.N-1)*bvp.ODE.P, bvp.B1.Get(r, c))
-	// 		}
-	// 	}
+	for i := 1; i < bvp.N; i++ {
+
+		fBefore := matrix.MakeDenseCopy(fNow)
+
+		fNow, err = bvp.ODE.F(bvp.X[i], bvp.T[i], bvp.Beta)
+
+		if err != nil {
+			return
+		}
+
+		constraint[i-1] = matrix.Difference(
+			matrix.Difference(bvp.X[i], bvp.X[i-1]),
+			matrix.Scaled(matrix.Sum(fBefore, fNow), (bvp.T[i]-bvp.T[i-1])/2),
+		)
+	}
+
+	constraint[bvp.N - 1] = matrix.Difference(
+		matrix.Sum(matrix.Product(bvp.B0, bvp.X[0]), matrix.Product(bvp.B1, bvp.X[bvp.N-1])),
+		bvp.B,
+	)
 
 	return
 }
 
+func getDelta(bvp *BVP) (delta []*matrix.DenseMatrix, err error) {
+	// delta = solve(C(x), c(x))
+	// C(x) %*% delta = c(x)
+	
+	A, B, err := ConstraintMatrixBlocks(bvp)
+	if err != nil {
+		return
+	}
 
-
-
-
-
-
+	c, err := ConstraintVectorBlocks(bvp)
+	if err != nil {
+		return
+	}
+	
+	C, D, U := RORFAC(A, B, bvp.N, bvp.ODE.P)
+	RQTRANS(A, B, U, c, bvp.N, bvp.ODE.P)
+	
+	hgb1b0 := matrix.Zeros(bvp.ODE.P*2, bvp.ODE.P*2)
+	hgb1b0.SetMatrix(0, 0, B[bvp.N-2])
+	hgb1b0.SetMatrix(0, bvp.ODE.P, D[bvp.N-2])
+	hgb1b0.SetMatrix(bvp.ODE.P, 0, matrix.MakeDenseCopy(bvp.B1))
+	hgb1b0.SetMatrix(bvp.ODE.P, bvp.ODE.P, matrix.MakeDenseCopy(bvp.B0))
+	smallc := matrix.Zeros(bvp.ODE.P*2, 1)
+	smallc.SetMatrix(0, 0, c[bvp.N - 2])
+	smallc.SetMatrix(bvp.ODE.P, 0, c[bvp.N - 1]) 
+	
+	deltaends, err := hgb1b0.SolveDense(smallc)
+	
+	delta = make([]*matrix.DenseMatrix, bvp.N, bvp.N)
+	
+	    for i := 0; i < bvp.N; i++ {
+	        delta[i] = matrix.Zeros(bvp.ODE.P, 1)
+	    }
+	
+	delta[0].SetMatrix(0, 0, deltaends.GetMatrix(bvp.ODE.P, 0, bvp.ODE.P, 1))
+	delta[bvp.N - 1].SetMatrix(0, 0, deltaends.GetMatrix(0, 0, bvp.ODE.P, 1))
+	
+	RBKSUB(B, C, D, U, c, delta, bvp.N, bvp.ODE.P)
+	
+	return
+}
 
 
 
