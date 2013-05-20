@@ -58,10 +58,99 @@ func NewBVPWithoutInitialGuess(ode ODE, timeMesh []float64, B0, B1, beta, b matr
 	return NewBVPWithInitialGuess(ode, initialGuess, timeMesh, B0, B1, beta, b)
 }
 
-func (bvp *BVP) Solve() {
-	// tolerance := 1e-4
-	// maxiter := 500
-	// converged := false
+func (bvp *BVP) Solve() error {
+	tolerance := 1e-4
+	maxiter := 500
+	converged := false
+
+	constraintBlocks, err := ConstraintVectorBlocks(bvp)
+	if err != nil {
+		return err
+	}
+	cost := sumOfSquares(constraintBlocks) // compute cost       
+	for i := 0; i < maxiter; i++ {
+		delta, err := getDelta(bvp)
+
+		if !exceedsTolerance(delta, tolerance) {
+			// fprintf('BVP solver terminating after %d steps\n', i)
+			converged = true
+			break
+		}
+
+		// save old values
+		costold := cost
+
+		xold := make([]matrix.Matrix, bvp.N, bvp.N)
+		for i := 0; i < bvp.N; i++ {
+			xold[i] = matrix.MakeDenseCopy(bvp.X[i])
+		}
+		var alpha float64 = 1
+
+		for {
+			for i := 0; i < bvp.N; i++ {
+				bvp.X[i].Subtract(delta[i]) // update x
+			}
+
+			constraintBlocks, err = ConstraintVectorBlocks(bvp)
+			if err != nil {
+				return err
+			}
+			cost := sumOfSquares(constraintBlocks) // compute cost
+
+			if cost < costold {
+				break
+			}
+			// revert to old values
+			for i := 0; i < bvp.N; i++ {
+				bvp.X[i] = matrix.MakeDenseCopy(xold[i])
+			}
+			dcost := -12
+			// dcost = 2*obj.c()'*obj.C()*delta(:);
+			if dcost > 0 {
+				// display('warning, dcost positive')
+				// display(dcost)
+				alpha = -alpha
+			} else {
+				// scale delta if cost increased
+				alpha = alpha / 2
+			}
+
+			for i := 0; i < bvp.N; i++ {
+				delta[i].Scale(alpha)
+			}
+
+			// if delta is small enough, we have converged so break
+			// display(norm(delta, 'inf'));
+
+			if !exceedsTolerance(delta, tolerance) {
+				// fprintf('BVP solver terminating after %d steps\n', i)
+				converged = true
+				break
+			}
+		}
+		if converged {
+			break
+		}
+	}
+
+	if !converged {
+		// display('Warning: BVP solver did not terminate');			
+	}
+	return nil
+}
+
+func (bvp *BVP) SolveIVP(initialGuess matrix.Matrix) error {
+	bvp.X[0] = initialGuess
+
+	for i := 1; i < len(bvp.X); i++ {
+		f, err := bvp.ODE.F(bvp.X[i-1], bvp.T[i-1], bvp.Beta)
+		if err != nil {
+			return err
+		}
+		bvp.X[i] = matrix.Sum(bvp.X[i-1], matrix.Scaled(f, bvp.T[i]-bvp.T[i-1]))
+	}
+
+	return nil
 }
 
 func ConstraintVector(bvp *BVP) (constraint *matrix.DenseMatrix, err error) {
@@ -100,11 +189,11 @@ func ConstraintVector(bvp *BVP) (constraint *matrix.DenseMatrix, err error) {
 }
 
 func ConstraintMatrixBlocks(bvp *BVP) (A, B []*matrix.DenseMatrix, err error) {
-	A = make([]*matrix.DenseMatrix, bvp.N - 1, bvp.N - 1)
-	B = make([]*matrix.DenseMatrix, bvp.N - 1, bvp.N - 1)
-	
+	A = make([]*matrix.DenseMatrix, bvp.N-1, bvp.N-1)
+	B = make([]*matrix.DenseMatrix, bvp.N-1, bvp.N-1)
+
 	dfdxNow, err := bvp.ODE.Dfdx(bvp.X[0], bvp.T[0], bvp.Beta)
-	
+
 	if err != nil {
 		return
 	}
@@ -123,7 +212,7 @@ func ConstraintMatrixBlocks(bvp *BVP) (A, B []*matrix.DenseMatrix, err error) {
 			matrix.Scaled(matrix.Eye(bvp.ODE.P), -1),
 			matrix.Scaled(dfdxBefore, (bvp.T[i]-bvp.T[i-1])/2),
 		)
-		
+
 		B[i-1] = matrix.Difference(
 			matrix.Eye(bvp.ODE.P),
 			matrix.Scaled(dfdxBefore, (bvp.T[i]-bvp.T[i-1])/2),
@@ -158,7 +247,7 @@ func ConstraintVectorBlocks(bvp *BVP) (constraint []*matrix.DenseMatrix, err err
 		)
 	}
 
-	constraint[bvp.N - 1] = matrix.Difference(
+	constraint[bvp.N-1] = matrix.Difference(
 		matrix.Sum(matrix.Product(bvp.B0, bvp.X[0]), matrix.Product(bvp.B1, bvp.X[bvp.N-1])),
 		bvp.B,
 	)
@@ -169,7 +258,7 @@ func ConstraintVectorBlocks(bvp *BVP) (constraint []*matrix.DenseMatrix, err err
 func getDelta(bvp *BVP) (delta []*matrix.DenseMatrix, err error) {
 	// delta = solve(C(x), c(x))
 	// C(x) %*% delta = c(x)
-	
+
 	A, B, err := ConstraintMatrixBlocks(bvp)
 	if err != nil {
 		return
@@ -179,36 +268,34 @@ func getDelta(bvp *BVP) (delta []*matrix.DenseMatrix, err error) {
 	if err != nil {
 		return
 	}
-	
+
 	C, D, U := RORFAC(A, B, bvp.N, bvp.ODE.P)
 	RQTRANS(A, B, U, c, bvp.N, bvp.ODE.P)
-	
+
 	hgb1b0 := matrix.Zeros(bvp.ODE.P*2, bvp.ODE.P*2)
 	hgb1b0.SetMatrix(0, 0, B[bvp.N-2])
 	hgb1b0.SetMatrix(0, bvp.ODE.P, D[bvp.N-2])
 	hgb1b0.SetMatrix(bvp.ODE.P, 0, matrix.MakeDenseCopy(bvp.B1))
 	hgb1b0.SetMatrix(bvp.ODE.P, bvp.ODE.P, matrix.MakeDenseCopy(bvp.B0))
 	smallc := matrix.Zeros(bvp.ODE.P*2, 1)
-	smallc.SetMatrix(0, 0, c[bvp.N - 2])
-	smallc.SetMatrix(bvp.ODE.P, 0, c[bvp.N - 1]) 
-	
+	smallc.SetMatrix(0, 0, c[bvp.N-2])
+	smallc.SetMatrix(bvp.ODE.P, 0, c[bvp.N-1])
+
 	deltaends, err := hgb1b0.SolveDense(smallc)
-	
+
 	delta = make([]*matrix.DenseMatrix, bvp.N, bvp.N)
-	
-	    for i := 0; i < bvp.N; i++ {
-	        delta[i] = matrix.Zeros(bvp.ODE.P, 1)
-	    }
-	
+
+	for i := 0; i < bvp.N; i++ {
+		delta[i] = matrix.Zeros(bvp.ODE.P, 1)
+	}
+
 	delta[0].SetMatrix(0, 0, deltaends.GetMatrix(bvp.ODE.P, 0, bvp.ODE.P, 1))
-	delta[bvp.N - 1].SetMatrix(0, 0, deltaends.GetMatrix(0, 0, bvp.ODE.P, 1))
-	
+	delta[bvp.N-1].SetMatrix(0, 0, deltaends.GetMatrix(0, 0, bvp.ODE.P, 1))
+
 	RBKSUB(B, C, D, U, c, delta, bvp.N, bvp.ODE.P)
-	
+
 	return
 }
-
-
 
 func ConstraintMatrix(bvp *BVP) (constraint *matrix.SparseMatrix, err error) {
 

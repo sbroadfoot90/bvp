@@ -64,6 +64,7 @@ func TestLinearFDfdxDfdbeta(t *testing.T) {
 		t.Error("dfdx function in linearFDfdxDfdbeta is broken")
 	}
 }
+
 // 
 // func TestSparseQR(t *testing.T) {
 // 	n := 100
