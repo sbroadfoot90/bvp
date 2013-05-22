@@ -1,7 +1,6 @@
 package bvp
 
 import (
-	"fmt"
 	"github.com/sbroadfoot90/go.matrix"
 	"math"
 	"testing"
@@ -456,10 +455,7 @@ func TestSolveMattheij(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error solving")
 	}
-	fmt.Sprintf("x%d.csv", 2)
-	// for i := 0; i < n; i++ {
-	// 	WriteMatrix(MattheijBVP.X[i], fmt.Sprintf("x%d.csv", i))
-	// }
+	// WriteMatrices(MattheijBVP.X, "x.csv")
 }
 
 func TestSolveMattheijEasy(t *testing.T) {
@@ -489,59 +485,54 @@ func TestSolveMattheijEasy(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error solving")
 	}
-	fmt.Sprintf("x%d.csv", 2)
-	// for i := 0; i < n; i++ {
-	// 	WriteMatrix(MattheijBVP.X[i], fmt.Sprintf("x%d.csv", i))
-	// }
+	// WriteMatrices(MattheijBVP.X, "x.csv")
 }
 
-// 
-// func TestSolveLorenz(t *testing.T) {
-// 	n := 3001
-// 
-// 	timeMesh := make([]float64, n, n)
-// 	initialGuess := make([]matrix.Matrix, n, n)
-// 	tf := 3.0
-// 	
-// 	for i := 0; i < n; i++ {
-// 		timeMesh[i] = float64(i)*tf / (float64(n) - 1)
-// 		initialGuess[i] = matrix.Scaled(matrix.Ones(3, 1), math.Exp(timeMesh[i]))
-// 	}
-// 
-// 	B0 := matrix.MakeDenseMatrix([]float64{1, 0, 0, 0, 1, 0, 0, 0, 1}, 3, 3)
-// 	B1 := matrix.MakeDenseMatrix([]float64{0, 0, 0, 0, 0, 0, 0, 0, 0}, 3, 3)
-// 	beta := matrix.MakeDenseMatrix([]float64{10, 28, 8./3.}, 3, 1)
-// 	b := matrix.MakeDenseMatrix([]float64{1, 1, 30}, 3, 1)
-// 	//b := matrix.Sum(matrix.Product(B0, initialGuess[0]), matrix.Product(B1, initialGuess[n-1]))
-// 
-// 	LorenzBVP, err := NewBVPWithInitialGuess(LorenzODE, initialGuess, timeMesh, B0, B1, beta, b)
-// 
-// 	if err != nil {
-// 		t.Errorf("Error creating Mattheij BVP")
-// 	}
-// 	
-// 	err = (&LorenzBVP).SolveIVP(b)
-// 	
-// 	if err != nil {
-// 		t.Errorf("Error solving")
-// 	}
-// 	// WriteMatrices(LorenzBVP.X, "xlorenz.csv")
-// 	err = (&LorenzBVP).Solve()
-// 	
-// 	if err != nil {
-// 		t.Errorf("Error solving")
-// 	}
-// 	
-// 	// WriteMatrices(LorenzBVP.X, "xlorenz.csv")
-// 	
-// 	LorenzBVP.B0 = matrix.MakeDenseMatrix([]float64{-0.0155, 0.0084, -0.2942, 0.0483, 0.0061, -0.9790, 0.1958, 0.1958, 0.0574}, 3, 3)
-// 	LorenzBVP.B1 = matrix.MakeDenseMatrix([]float64{-0.4504, -0.7696, 0.3434, 0, -0.4694, -0.3611, 0, 0, 0}, 3, 3)
-// 	LorenzBVP.B = matrix.Sum(matrix.Product(LorenzBVP.B0, LorenzBVP.X[0]), matrix.Product(LorenzBVP.B1, LorenzBVP.X[n-1]))
-// 	WriteMatrix(LorenzBVP.B, "blorenz.csv")
-// }
-// 
-
 func TestSolveLorenz(t *testing.T) {
+	n := 3001
+
+	timeMesh := make([]float64, n, n)
+	initialGuess := make([]matrix.Matrix, n, n)
+	tf := 3.0
+
+	for i := 0; i < n; i++ {
+		timeMesh[i] = float64(i) * tf / (float64(n) - 1)
+		initialGuess[i] = matrix.Scaled(matrix.Ones(3, 1), math.Exp(timeMesh[i]))
+	}
+
+	B0 := matrix.MakeDenseMatrix([]float64{1, 0, 0, 0, 1, 0, 0, 0, 1}, 3, 3)
+	B1 := matrix.MakeDenseMatrix([]float64{0, 0, 0, 0, 0, 0, 0, 0, 0}, 3, 3)
+	beta := matrix.MakeDenseMatrix([]float64{10, 28, 8. / 3.}, 3, 1)
+	b := matrix.MakeDenseMatrix([]float64{1, 1, 30}, 3, 1)
+	//b := matrix.Sum(matrix.Product(B0, initialGuess[0]), matrix.Product(B1, initialGuess[n-1]))
+
+	LorenzBVP, err := NewBVPWithInitialGuess(LorenzODE, initialGuess, timeMesh, B0, B1, beta, b)
+
+	if err != nil {
+		t.Errorf("Error creating Mattheij BVP")
+	}
+
+	err = (&LorenzBVP).SolveIVP(b)
+
+	if err != nil {
+		t.Errorf("Error solving")
+	}
+	// WriteMatrices(LorenzBVP.X, "xlorenz.csv")
+	err = (&LorenzBVP).Solve()
+
+	if err != nil {
+		t.Errorf("Error solving")
+	}
+
+	WriteMatrices(LorenzBVP.X, "xlorenz.csv")
+
+	LorenzBVP.B0 = matrix.MakeDenseMatrix([]float64{-0.0155, 0.0084, -0.2942, 0.0483, 0.0061, -0.9790, 0.1958, 0.1958, 0.0574}, 3, 3)
+	LorenzBVP.B1 = matrix.MakeDenseMatrix([]float64{-0.4504, -0.7696, 0.3434, 0, -0.4694, -0.3611, 0, 0, 0}, 3, 3)
+	LorenzBVP.B = matrix.Sum(matrix.Product(LorenzBVP.B0, LorenzBVP.X[0]), matrix.Product(LorenzBVP.B1, LorenzBVP.X[n-1]))
+	WriteMatrix(LorenzBVP.B, "blorenz.csv")
+}
+
+func TestSolveLorenzBVP(t *testing.T) {
 	n := 3001
 
 	timeMesh := make([]float64, n, n)
@@ -557,7 +548,8 @@ func TestSolveLorenz(t *testing.T) {
 	B1 := matrix.MakeDenseMatrix([]float64{-0.4504, -0.7696, 0.3434, 0, -0.4694, -0.3611, 0, 0, 0}, 3, 3)
 	beta := matrix.MakeDenseMatrix([]float64{10, 28, 8. / 3.}, 3, 1)
 	x0 := matrix.MakeDenseMatrix([]float64{1, 1, 30}, 3, 1)
-	b := matrix.MakeDenseMatrix([]float64{8.82988270484295, -40.90847285612193, 2.1136}, 3, 1)
+	b := matrix.MakeDenseMatrix([]float64{16.824831499260988, -40.13868387826423, 2.1136}, 3, 1)
+	// b := matrix.MakeDenseMatrix([]float64{-0.7924167886319804, -34.40243412416355, 2.1136}, 3, 1)
 	//b := matrix.Sum(matrix.Product(B0, initialGuess[0]), matrix.Product(B1, initialGuess[n-1]))
 
 	LorenzBVP, err := NewBVPWithInitialGuess(LorenzODE, initialGuess, timeMesh, B0, B1, beta, b)
@@ -580,4 +572,15 @@ func TestSolveLorenz(t *testing.T) {
 	}
 
 	WriteMatrices(LorenzBVP.X, "xlorenz.csv")
+
+	LorenzBVP.B = matrix.MakeDenseMatrix([]float64{16.324831499260988, -40.13868387826423, 2.1136}, 3, 1)
+
+	err = (&LorenzBVP).Solve()
+
+	if err != nil {
+		t.Errorf("Error solving")
+	}
+
+	WriteMatrices(LorenzBVP.X, "xlorenz2.csv")
+
 }

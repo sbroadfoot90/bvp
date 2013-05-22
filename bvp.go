@@ -61,20 +61,18 @@ func NewBVPWithoutInitialGuess(ode ODE, timeMesh []float64, B0, B1, beta, b matr
 func (bvp *BVP) Solve() error {
 	tolerance := 1e-4
 	maxiter := 500
-	converged := false
 
 	constraintBlocks, err := ConstraintVectorBlocks(bvp)
 	if err != nil {
 		return err
 	}
+
 	cost := sumOfSquares(constraintBlocks) // compute cost       
 	for i := 0; i < maxiter; i++ {
 		delta, err := getDelta(bvp)
 
 		if !exceedsTolerance(delta, tolerance) {
-			// fprintf('BVP solver terminating after %d steps\n', i)
-			converged = true
-			break
+			return nil
 		}
 
 		// save old values
@@ -86,7 +84,61 @@ func (bvp *BVP) Solve() error {
 		}
 		var alpha float64 = 1
 
+		for i := 0; i < bvp.N; i++ {
+			bvp.X[i].Subtract(delta[i]) // update x
+		}
+
+		constraintBlocks, err = ConstraintVectorBlocks(bvp)
+		if err != nil {
+			return err
+		}
+		cost := sumOfSquares(constraintBlocks) // compute cost
+
+		if cost < costold {
+			continue
+		}
+
+		// revert to old values
+		for i := 0; i < bvp.N; i++ {
+			bvp.X[i] = matrix.MakeDenseCopy(xold[i])
+		}
+
+		var dcost float64 = 0
+		constraintBlocks, err = ConstraintVectorBlocks(bvp)
+		A, B, err := ConstraintMatrixBlocks(bvp)
+
+		for i := 0; i < bvp.N; i++ {
+			var tempMatrix *matrix.DenseMatrix
+			if i < bvp.N-1 {
+				tempMatrix = matrix.Sum(matrix.Product(A[i], delta[i]), matrix.Product(B[i], delta[i+1]))
+			} else {
+				tempMatrix = matrix.Sum(matrix.Product(bvp.B0, delta[0]), matrix.Product(bvp.B1, delta[bvp.N-1]))
+			}
+			for j := 0; j < bvp.ODE.P; j++ {
+				dcost -= constraintBlocks[i].Get(j, 0) * tempMatrix.Get(j, 0)
+			}
+		}
+
 		for {
+			if dcost > 0 {
+				// display('warning, dcost positive')
+				// display(dcost)
+				alpha = -alpha
+				dcost = -dcost
+			} else {
+				// scale delta if cost increased
+				alpha = alpha / 2
+				dcost = dcost / 2
+			}
+
+			for i := 0; i < bvp.N; i++ {
+				delta[i].Scale(alpha)
+			}
+
+			if !exceedsTolerance(delta, tolerance) {
+				return nil // converged
+			}
+
 			for i := 0; i < bvp.N; i++ {
 				bvp.X[i].Subtract(delta[i]) // update x
 			}
@@ -100,54 +152,46 @@ func (bvp *BVP) Solve() error {
 			if cost < costold {
 				break
 			}
+
 			// revert to old values
 			for i := 0; i < bvp.N; i++ {
 				bvp.X[i] = matrix.MakeDenseCopy(xold[i])
 			}
-			dcost := -12
-			// dcost = 2*obj.c()'*obj.C()*delta(:);
-			if dcost > 0 {
-				// display('warning, dcost positive')
-				// display(dcost)
-				alpha = -alpha
-			} else {
-				// scale delta if cost increased
-				alpha = alpha / 2
-			}
-
-			for i := 0; i < bvp.N; i++ {
-				delta[i].Scale(alpha)
-			}
-
-			// if delta is small enough, we have converged so break
-			// display(norm(delta, 'inf'));
-
-			if !exceedsTolerance(delta, tolerance) {
-				// fprintf('BVP solver terminating after %d steps\n', i)
-				converged = true
-				break
-			}
-		}
-		if converged {
-			break
 		}
 	}
 
-	if !converged {
-		// display('Warning: BVP solver did not terminate');			
-	}
-	return nil
+	return ConvergeError("Warning: BVP solver did not terminate")
 }
 
 func (bvp *BVP) SolveIVP(initialGuess matrix.Matrix) error {
 	bvp.X[0] = initialGuess
+	niter := 10
 
 	for i := 1; i < len(bvp.X); i++ {
-		f, err := bvp.ODE.F(bvp.X[i-1], bvp.T[i-1], bvp.Beta)
+		fBefore, err := bvp.ODE.F(bvp.X[i-1], bvp.T[i-1], bvp.Beta)
 		if err != nil {
 			return err
 		}
-		bvp.X[i] = matrix.Sum(bvp.X[i-1], matrix.Scaled(f, bvp.T[i]-bvp.T[i-1]))
+		dt := bvp.T[i] - bvp.T[i-1]
+		bvp.X[i] = matrix.Sum(bvp.X[i-1], matrix.Scaled(fBefore, dt))
+
+		for j := 0; j < niter; j++ {
+			fNow, err := bvp.ODE.F(bvp.X[i], bvp.T[i], bvp.Beta)
+			if err != nil {
+				return err
+			}
+			dfdxNow, err := bvp.ODE.Dfdx(bvp.X[i], bvp.T[i], bvp.Beta)
+			if err != nil {
+				return err
+			}
+			C := matrix.Difference(matrix.Eye(bvp.ODE.P), matrix.Scaled(dfdxNow, dt/2))
+			c := matrix.Difference(matrix.Difference(bvp.X[i], bvp.X[i-1]), matrix.Scaled(matrix.Sum(fNow, fBefore), dt/2))
+			delta, err := C.Solve(c)
+			if err != nil {
+				return err
+			}
+			bvp.X[i].Subtract(delta)
+		}
 	}
 
 	return nil

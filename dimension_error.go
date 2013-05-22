@@ -22,3 +22,9 @@ type MatrixError string
 func (me MatrixError) Error() string {
 	return string(me)
 }
+
+type ConvergeError string
+
+func (ce ConvergeError) Error() string {
+	return string(ce)
+}
