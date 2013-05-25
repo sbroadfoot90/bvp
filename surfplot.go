@@ -10,8 +10,9 @@ func Surfplotb(bvp BVP, O matrix.Matrix, resolution int, b1index int, b1i, b1f f
 	bvp.Solve()
 
 	y := make([]*matrix.DenseMatrix, bvp.N)
-
+	xtrue := make([]*matrix.DenseMatrix, bvp.N)
 	for i := 0; i < bvp.N; i++ {
+		xtrue[i] = matrix.MakeDenseCopy(bvp.X[i])
 		y[i] = matrix.Product(O, bvp.X[i])
 	}
 
@@ -32,7 +33,11 @@ func Surfplotb(bvp BVP, O matrix.Matrix, resolution int, b1index int, b1i, b1f f
 	for i := 0; i < (2*resolution+1)*(2*resolution+1); i++ {
 		bvp.B.Set(b1index, 0, b1.Get(d1+resolution, 0))
 		bvp.B.Set(b2index, 0, b2.Get(d2+resolution, 0))
-
+		
+		for j := 0; j < bvp.N; j++ {
+			bvp.X[j] = matrix.MakeDenseCopy(xtrue[j])
+		}
+		
 		bvp.Solve()
 
 		var cost float64 = 0
