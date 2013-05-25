@@ -268,6 +268,34 @@ func sign(x float64) float64 {
 	return 1
 }
 
+func spiral(x, y, shell, side int) (int, int, int, int) {
+
+	if side == 1 {
+		x++
+		if x == shell {
+			side = 2
+		}
+	} else if side == 2 {
+		y--
+		if y == -shell {
+			side = 3
+		}
+	} else if side == 3 {
+		x--
+		if x == -shell {
+			side = 4
+		}
+	} else {
+		y++
+		if y == shell+1 {
+			shell++
+			side = 1
+		}
+	}
+
+	return x, y, shell, side
+}
+
 func SparseQR(A *matrix.SparseMatrix) (Q, R *matrix.SparseMatrix) {
 	m := A.Rows()
 	n := A.Cols()
