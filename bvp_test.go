@@ -488,6 +488,36 @@ func TestSolveMattheijEasy(t *testing.T) {
 	// WriteMatrices(MattheijBVP.X, "x.csv")
 }
 
+func TestMattheijBCs(t *testing.T) {
+	n := 1001
+
+	timeMesh := make([]float64, n, n)
+	initialGuess := make([]matrix.Matrix, n, n)
+
+	for i := 0; i < n; i++ {
+		timeMesh[i] = float64(i) / (float64(n) - 1)
+		initialGuess[i] = matrix.Scaled(matrix.Ones(3, 1), math.Exp(timeMesh[i]))
+	}
+
+	B0 := matrix.MakeDenseMatrix([]float64{1, 0, 0, 0, 0, 0, 0, 0, 0}, 3, 3)
+	B1 := matrix.MakeDenseMatrix([]float64{0, 0, 0, 0, 1, 0, 0.8415, 0, 0.5403}, 3, 3)
+	beta := matrix.MakeDenseMatrix([]float64{2, 2}, 2, 1)
+	b := matrix.Sum(matrix.Product(B0, initialGuess[0]), matrix.Product(B1, initialGuess[n-1]))
+
+	MattheijBVP, err := NewBVPWithInitialGuess(MattheijODE, initialGuess, timeMesh, B0, B1, beta, b)
+
+	if err != nil {
+		t.Errorf("Error creating Mattheij BVP")
+	}
+
+	SetOptimalBoundaryMatrices(&MattheijBVP)
+
+	WriteMatrix(MattheijBVP.B0, "B0.csv")
+	WriteMatrix(MattheijBVP.B1, "B1.csv")
+	WriteMatrix(MattheijBVP.B, "B.csv")
+
+}
+
 func TestSolveLorenz(t *testing.T) {
 	n := 3001
 
@@ -572,15 +602,15 @@ func TestSolveLorenzBVP(t *testing.T) {
 	}
 
 	WriteMatrices(LorenzBVP.X, "xlorenz.csv")
-
-	LorenzBVP.B = matrix.MakeDenseMatrix([]float64{16.324831499260988, -40.13868387826423, 2.1136}, 3, 1)
-
-	err = (&LorenzBVP).Solve()
-
-	if err != nil {
-		t.Errorf("Error solving")
-	}
-
-	WriteMatrices(LorenzBVP.X, "xlorenz2.csv")
+	// 
+	// LorenzBVP.B = matrix.MakeDenseMatrix([]float64{16.324831499260988, -40.13868387826423, 2.1136}, 3, 1)
+	// 
+	// err = (&LorenzBVP).Solve()
+	// 
+	// if err != nil {
+	// 	t.Errorf("Error solving")
+	// }
+	// 
+	// WriteMatrices(LorenzBVP.X, "xlorenz2.csv")
 
 }

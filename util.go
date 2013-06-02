@@ -227,6 +227,91 @@ func RBKSUB(B, C, D, U, q, xc []*matrix.DenseMatrix, n, m int) {
 	}
 }
 
+func BMCALC(B, D []*matrix.DenseMatrix, n, m int) (B1, Bn *matrix.DenseMatrix) {
+	// !....................................................................
+	// !use orthogonal factorization of constraint matrix [B,D] to set up boundary
+	// !conditions
+	// !....................................................................
+	// real(kind=8),dimension(:,:,:),intent(inout)::B,D
+	// real(kind=8),dimension(:,:),intent(inout)::UL,B1,Bn
+	// integer,intent(in)::n,m
+	// 
+	// real(kind=8),dimension(:,:),allocatable::ABC
+	// real(kind=8),dimension(:),allocatable::UD
+
+	// allocate(ABC(2 * m, 3 * m), UD(m))
+
+	ABC := matrix.Zeros(2*m, 3*m)
+	UD := make([]float64, m)
+
+	// !cast input data
+	// ![B^T I ]=[A_{1,1} A_{1,2} A_{1,3}]
+	// ![D^T  I] [A_{2,1} A_{2,2} A_{2,3}]
+
+	for i := 0; i < m; i++ {
+		for j := 0; j < m; j++ {
+			ABC.Set(i, j, B[n-2].Get(j, i))   //!A_{1,1}=B^T
+			ABC.Set(i+m, j, D[n-2].Get(j, i)) //!A_{2,1}=D^T
+		}
+		ABC.Set(i, m+i, 1.)     //!A_{1,2}=I
+		ABC.Set(m+i, 2*m+i, 1.) //!A_{2,3}=I
+	}
+
+	//!make orthogonal factorization
+	//![B^T I ]->[U Q_1^T]
+	//![D^T  I]  [0 Q_2^T]
+
+	for i := 0; i < m; i++ {
+		var ss1 float64 = 0.
+		for j := i; j < 2*m; j++ {
+			ss1 = ss1 + math.Pow(ABC.Get(j, i), 2)
+		}
+		UD[i] = -math.Sqrt(ss1) //!assumes ABC(i,i)>0
+		if ABC.Get(i, i) < 0. {
+			UD[i] = -UD[i]
+		}
+		ABC.Set(i, i, ABC.Get(i, i)-UD[i])
+		for j := i + 1; j < 3*m; j++ {
+			ss1 = 0.
+			for k := i; k < 2*m; k++ {
+				ss1 = ss1 + ABC.Get(k, i)*ABC.Get(k, j)
+			}
+			ss1 = ss1 / (-UD[i] * ABC.Get(i, i))
+			for k := i; k < 2*m; k++ {
+				ABC.Set(k, j, ABC.Get(k, j)-ss1*ABC.Get(k, i))
+			}
+		}
+	}
+	//!save U^T to apply to rhs q(n-1,*)
+	//![ B  D][xc(n)]=[q]-> [Q_1^T][xc(n)]=[U^-Tq]
+	//![Q_2^T][xc(1)] [b]   [Q_2^T][xc(1)] [  b  ]
+
+	// UL.Set(0, 0, UD[0])
+	// for i := 1; i < m; i++ {
+	// 	UL.Set(i, i, UD[i])
+	// 	for j := 0; j < i-1; j++ {
+	// 		UL.Set(i, j, ABC.Get(j, i))
+	// 	}
+	// }
+
+	//!copy orthogonal transformation to boundary matrices
+	//![Q_1^T]->[ B D ]
+	//![Q_2^T]  [Bn B1]
+	B1 = matrix.Zeros(3, 3)
+	Bn = matrix.Zeros(3, 3)
+	for i := 0; i < m; i++ {
+
+		for j := 0; j < m; j++ {
+			B[n-2].Set(i, j, ABC.Get(i, m+j))
+			D[n-2].Set(i, j, ABC.Get(i, 2*m+j))
+			Bn.Set(i, j, ABC.Get(m+i, m+j))
+			B1.Set(i, j, ABC.Get(m+i, 2*m+j))
+		}
+	}
+
+	return B1, Bn
+}
+
 func exceedsTolerance(matrices []*matrix.DenseMatrix, tolerance float64) bool {
 	for t := range matrices {
 		for i := 0; i < matrices[t].Rows(); i++ {

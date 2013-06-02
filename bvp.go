@@ -59,7 +59,7 @@ func NewBVPWithoutInitialGuess(ode ODE, timeMesh []float64, B0, B1, beta, b matr
 }
 
 func (bvp *BVP) Solve() error {
-	tolerance := 1e-4
+	tolerance := 1e-6
 	maxiter := 500
 
 	constraintBlocks, err := ConstraintVectorBlocks(bvp)
@@ -341,6 +341,19 @@ func getDelta(bvp *BVP) (delta []*matrix.DenseMatrix, err error) {
 	return
 }
 
+func SetOptimalBoundaryMatrices(bvp *BVP) {
+
+	A, B, err := ConstraintMatrixBlocks(bvp)
+	if err != nil {
+		return
+	}
+
+	_, D, _ := RORFAC(A, B, bvp.N, bvp.ODE.P)
+
+	bvp.B0, bvp.B1 = BMCALC(B, D, bvp.N, bvp.ODE.P)
+
+	bvp.B = matrix.Sum(matrix.Product(bvp.B0, bvp.X[0]), matrix.Product(bvp.B1, bvp.X[bvp.N-1]))
+}
 func ConstraintMatrix(bvp *BVP) (constraint *matrix.SparseMatrix, err error) {
 
 	constraint = matrix.ZerosSparse(bvp.ODE.P*bvp.N, bvp.ODE.P*bvp.N)

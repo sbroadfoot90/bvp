@@ -43,10 +43,10 @@ func TestLorenzSurfPlotB(t *testing.T) {
 		t.Errorf("Error solving")
 	}
 
-	O := matrix.MakeDenseMatrix([]float64{1, 0, 0, 0, 1, 0, 0, 0, 1}, 3, 3)
-	b1, b2, costMatrix := Surfplotb(LorenzBVP, O, 2, 0, 16.724831499260988, 16.924831499260988, 1, -40.23868387826423, -40.03868387826423)
+	// O := matrix.MakeDenseMatrix([]float64{1, 0, 0, 0, 1, 0, 0, 0, 1}, 3, 3)
+	// b1, b2, costMatrix := Surfplotb(LorenzBVP, O, 2, 0, 16.724831499260988, 16.924831499260988, 1, -40.23868387826423, -40.03868387826423)
 
-	WriteMatrix(b1, "b1hr.csv")
-	WriteMatrix(b2, "b2hr.csv")
-	WriteMatrix(costMatrix, "costMatrixhr.csv")
+	// WriteMatrix(b1, "b1hr.csv")
+	// WriteMatrix(b2, "b2hr.csv")
+	// WriteMatrix(costMatrix, "costMatrixhr.csv")
 }
