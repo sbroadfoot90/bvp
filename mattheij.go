@@ -27,31 +27,4 @@ func MattheijQ(t float64, beta matrix.MatrixRO) matrix.Matrix {
 
 var MattheijF, MattheijDfdx = LinearFDfdx(MattheijA, MattheijQ)
 
-var (
-	MattheijDfdbeta = []func(matrix.MatrixRO, float64, matrix.MatrixRO) matrix.Matrix{MattheijDfdbeta1, MattheijDfdbeta2}
-
-	MattheijODE = NewODE(MattheijF, MattheijDfdx, MattheijDfdbeta, 3)
-)
-
-func MattheijDfdbeta1(x matrix.MatrixRO, t float64, beta matrix.MatrixRO) matrix.Matrix {
-	dadbeta1 := matrix.Zeros(3, 3)
-
-	dadbeta1.Set(0, 0, -math.Cos(beta.Get(1, 0)*t))
-	dadbeta1.Set(0, 2, math.Sin(beta.Get(1, 0)*t))
-	dadbeta1.Set(1, 1, 1)
-	dadbeta1.Set(2, 0, math.Sin(beta.Get(1, 0)*t))
-	dadbeta1.Set(2, 2, math.Cos(beta.Get(1, 0)*t))
-
-	return matrix.Product(dadbeta1, x)
-}
-
-func MattheijDfdbeta2(x matrix.MatrixRO, t float64, beta matrix.MatrixRO) matrix.Matrix {
-	dadbeta2 := matrix.Zeros(3, 3)
-
-	dadbeta2.Set(0, 0, t*beta.Get(0, 0)*math.Sin(beta.Get(1, 0)*t))
-	dadbeta2.Set(2, 0, -t*beta.Get(0, 0)*math.Cos(beta.Get(1, 0)*t))
-	dadbeta2.Set(0, 2, t*beta.Get(0, 0)*math.Cos(beta.Get(1, 0)*t))
-	dadbeta2.Set(2, 2, -t*beta.Get(0, 0)*math.Sin(beta.Get(1, 0)*t))
-
-	return matrix.Product(dadbeta2, x)
-}
+var MattheijODE = NewODE(MattheijF, MattheijDfdx, 3, 2)

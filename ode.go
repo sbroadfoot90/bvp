@@ -11,16 +11,13 @@ import (
 type ODE struct {
 	// dx/dt = F(x, t, beta)
 	f, dfdx func(x matrix.MatrixRO, t float64, beta matrix.MatrixRO) matrix.Matrix
-	dfdbeta []func(x matrix.MatrixRO, t float64, beta matrix.MatrixRO) matrix.Matrix
 
 	P, // number of varibales (length of x)
 	Q int // number of parameters (length of beta)
 }
 
-func NewODE(f, dfdx func(x matrix.MatrixRO, t float64, beta matrix.MatrixRO) matrix.Matrix,
-	dfdbeta []func(x matrix.MatrixRO, t float64, beta matrix.MatrixRO) matrix.Matrix,
-	p int) ODE {
-	return ODE{f, dfdx, dfdbeta, p, len(dfdbeta)}
+func NewODE(f, dfdx func(x matrix.MatrixRO, t float64, beta matrix.MatrixRO) matrix.Matrix,	p, q int) ODE {
+	return ODE{f, dfdx, p, q}
 }
 
 // Evaluates the function f with checking of matrix dimensions
