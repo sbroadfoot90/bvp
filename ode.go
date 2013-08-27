@@ -16,7 +16,7 @@ type ODE struct {
 	Q int // number of parameters (length of beta)
 }
 
-func NewODE(f, dfdx func(x matrix.MatrixRO, t float64, beta matrix.MatrixRO) matrix.Matrix,	p, q int) ODE {
+func NewODE(f, dfdx func(x matrix.MatrixRO, t float64, beta matrix.MatrixRO) matrix.Matrix, p, q int) ODE {
 	return ODE{f, dfdx, p, q}
 }
 

@@ -67,7 +67,7 @@ func (bvp *BVP) Solve() error {
 		return err
 	}
 
-	cost := sumOfSquares(constraintBlocks) // compute cost       
+	cost := sumOfSquares(constraintBlocks) // compute cost
 	for i := 0; i < maxiter; i++ {
 		delta, err := getDelta(bvp)
 
@@ -278,8 +278,8 @@ func getDelta(bvp *BVP) (delta []*matrix.DenseMatrix, err error) {
 		return
 	}
 
-	C, D, U := RORFAC(A, B, bvp.N, bvp.ODE.P)
-	RQTRANS(A, B, U, c, bvp.N, bvp.ODE.P)
+	C, D, U := rightOrthogonalFactorisation(A, B, bvp.N, bvp.ODE.P)
+	rqTransformation(A, B, U, c, bvp.N, bvp.ODE.P)
 
 	hgb1b0 := matrix.Zeros(bvp.ODE.P*2, bvp.ODE.P*2)
 	hgb1b0.SetMatrix(0, 0, B[bvp.N-2])
@@ -301,7 +301,7 @@ func getDelta(bvp *BVP) (delta []*matrix.DenseMatrix, err error) {
 	delta[0].SetMatrix(0, 0, deltaends.GetMatrix(bvp.ODE.P, 0, bvp.ODE.P, 1))
 	delta[bvp.N-1].SetMatrix(0, 0, deltaends.GetMatrix(0, 0, bvp.ODE.P, 1))
 
-	RBKSUB(B, C, D, U, c, delta, bvp.N, bvp.ODE.P)
+	rightBackSubstitute(B, C, D, U, c, delta, bvp.N, bvp.ODE.P)
 
 	return
 }
@@ -313,9 +313,9 @@ func SetOptimalBoundaryMatrices(bvp *BVP) {
 		return
 	}
 
-	_, D, _ := RORFAC(A, B, bvp.N, bvp.ODE.P)
+	_, D, _ := rightOrthogonalFactorisation(A, B, bvp.N, bvp.ODE.P)
 
-	bvp.B0, bvp.B1 = BMCALC(B, D, bvp.N, bvp.ODE.P)
+	bvp.B0, bvp.B1 = calculateBoundaryMatrices(B, D, bvp.N, bvp.ODE.P)
 
 	bvp.B = matrix.Sum(matrix.Product(bvp.B0, bvp.X[0]), matrix.Product(bvp.B1, bvp.X[bvp.N-1]))
 }

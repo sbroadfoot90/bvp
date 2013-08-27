@@ -72,7 +72,7 @@ func LinearFDfdx(
 	return
 }
 
-func RORFAC(A, B []*matrix.DenseMatrix, n, m int) (C, D, U []*matrix.DenseMatrix) {
+func rightOrthogonalFactorisation(A, B []*matrix.DenseMatrix, n, m int) (C, D, U []*matrix.DenseMatrix) {
 	//............................................................................
 	//Orthogonal factorization of block bidiagonal matrix to upper triangular form
 	//  B(1)    ........... A(1)        B(1) C(1) ............D(1)
@@ -175,9 +175,9 @@ func RORFAC(A, B []*matrix.DenseMatrix, n, m int) (C, D, U []*matrix.DenseMatrix
 	return
 }
 
-func RQTRANS(A, B, U, q []*matrix.DenseMatrix, n, m int) {
+func rqTransformation(A, B, U, q []*matrix.DenseMatrix, n, m int) {
 	// #!...............................................................................
-	// #!application of orthogonal transformation RORFAC to rhs
+	// #!application of orthogonal transformation rightOrthogonalFactorisation to rhs
 	// #!...............................................................................
 	// #real(kind=8),dimension(:,:,:),intent(inout)::A,B
 	// #real(kind=8),dimension(:,:),intent(inout)::U,q
@@ -203,7 +203,7 @@ func RQTRANS(A, B, U, q []*matrix.DenseMatrix, n, m int) {
 	}
 }
 
-func RBKSUB(B, C, D, U, q, xc []*matrix.DenseMatrix, n, m int) {
+func rightBackSubstitute(B, C, D, U, q, xc []*matrix.DenseMatrix, n, m int) {
 	// #!..............................................................
 	// #!given starting values xc(1),xc(n) perform back substitution
 	// #!..............................................................
@@ -227,7 +227,7 @@ func RBKSUB(B, C, D, U, q, xc []*matrix.DenseMatrix, n, m int) {
 	}
 }
 
-func BMCALC(B, D []*matrix.DenseMatrix, n, m int) (B1, Bn *matrix.DenseMatrix) {
+func calculateBoundaryMatrices(B, D []*matrix.DenseMatrix, n, m int) (B1, Bn *matrix.DenseMatrix) {
 	// !....................................................................
 	// !use orthogonal factorization of constraint matrix [B,D] to set up boundary
 	// !conditions
@@ -235,7 +235,7 @@ func BMCALC(B, D []*matrix.DenseMatrix, n, m int) (B1, Bn *matrix.DenseMatrix) {
 	// real(kind=8),dimension(:,:,:),intent(inout)::B,D
 	// real(kind=8),dimension(:,:),intent(inout)::UL,B1,Bn
 	// integer,intent(in)::n,m
-	// 
+	//
 	// real(kind=8),dimension(:,:),allocatable::ABC
 	// real(kind=8),dimension(:),allocatable::UD
 
